@@ -46,12 +46,11 @@ func EventDetailsURL(eventURLStr string) (details *EventDetails, err error) {
 
 	details = &EventDetails{}
 
-	timestamps := doc.Find("#mw-content-text table tr:first-child .tooltip .localtime")
-	if timestamps.Length() == 2 {
+	timestamps := doc.Find("#mw-content-text .tooltip .localtime")
+	if timestamps.Length() > 1 {
 		timestamps.EachWithBreak(func(i int, sel *goquery.Selection) bool {
 			if len(sel.Nodes) == 0 || sel.Nodes[0].FirstChild == nil {
 				err = errors.New("could not find timestamps node")
-
 				return false
 			}
 
@@ -114,7 +113,7 @@ func CurrentEvents() (events []*Event, err error) {
 		return
 	}
 
-	td := doc.Find(".wikitable td").First()
+	td := doc.Find(".wikitable tr:nth-child(6) td:nth-child(1)").First()
 	if td.Length() == 0 {
 		err = errors.New("events container not found")
 
@@ -151,7 +150,9 @@ func CurrentEvents() (events []*Event, err error) {
 			URL:   eventURL.String(),
 		}
 
-		events = append(events, event)
+		if !checkDuplicate(events, event) {
+			events = append(events, event)
+		}
 	})
 
 	return
@@ -173,7 +174,7 @@ func UpcomingEvents() (events []*Event, err error) {
 		return
 	}
 
-	td := doc.Find(".wikitable tr:nth-child(2) td:nth-child(2)").First()
+	td := doc.Find(".wikitable tr:nth-child(10) td:nth-child(1)").First()
 	if td.Length() == 0 {
 		err = errors.New("events container not found")
 
@@ -214,8 +215,19 @@ func UpcomingEvents() (events []*Event, err error) {
 			event.URL = eventURL.String()
 		}
 
-		events = append(events, event)
+		if !checkDuplicate(events, event) {
+			events = append(events, event)
+		}
 	})
 
 	return
+}
+
+func checkDuplicate(list []*Event, element *Event) bool {
+    for _, a := range list {
+    	if a.Title == element.Title {
+    		return true
+    	}
+    }
+    return false
 }
